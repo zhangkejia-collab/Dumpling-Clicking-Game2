@@ -3,49 +3,346 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>華語生詞練習：單句填空</title>
+    <title>華語飲食文化記憶遊戲</title>
     <style>
-        /* 基礎排版與字體 */
-        body {
-            font-family: '微軟正黑體', sans-serif;
-            background-color: #f4f7f6;
-            color: #2c3e50;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+        :root {
+            --primary-color: #d35400; /* 溫暖的食物橘色 */
+            --bg-color: #fdf6e3;
+            --card-bg: #fff;
+            --text-color: #333;
+            --success-color: #27ae60;
         }
 
-        /* 遊戲主要容器 */
-        #game-container {
+        body {
+            font-family: 'Helvetica Neue', Arial, 'LiHei Pro', '微軟正黑體', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+
+        p.subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+
+        /* 遊戲網格設計 */
+        .memory-game {
             width: 100%;
             max-width: 600px;
-            background-color: #ffffff;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-            padding: 40px 30px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr); /* 4x4 網格 */
+            gap: 10px;
+            perspective: 1000px;
+        }
+
+        /* 卡片設計 */
+        .memory-card {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1; /* 保持正方形 */
+            cursor: pointer;
+            transform-style: preserve-3d;
+            transition: transform 0.5s;
+        }
+
+        .memory-card.flip {
+            transform: rotateY(180deg);
+        }
+
+        .memory-card.matched .front-face {
+            background-color: var(--success-color);
+            color: white;
+            border-color: var(--success-color);
+        }
+
+        .front-face, .back-face {
+            width: 100%;
+            height: 100%;
+            padding: 10px;
             box-sizing: border-box;
+            position: absolute;
+            border-radius: 8px;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .front-face {
+            background-color: var(--card-bg);
+            transform: rotateY(180deg);
+            border: 2px solid var(--primary-color);
+            line-height: 1.4;
+            word-break: keep-all;
+        }
+
+        .card-name {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .card-desc {
+            font-size: 0.9rem;
+        }
+
+        .matched .card-name, .matched .card-desc {
+            color: white;
+        }
+
+        .back-face {
+            background-color: var(--primary-color);
+            color: white;
+            font-size: 2rem;
+            border: 2px solid #b84a00;
+        }
+
+        /* 遊戲結束彈跳視窗 (Modal) */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
             text-align: center;
         }
 
-        /* 進度條與標題 */
-        #progress-text {
-            font-size: 16px;
-            color: #7f8c8d;
-            font-weight: bold;
-            margin-bottom: 20px;
+        .modal-content h2 {
+            color: var(--primary-color);
+            margin-top: 0;
         }
 
-        /* 句子顯示區 */
-        #sentence-container {
-            font-size: 24px;
-            line-height: 1.8;
-            margin-bottom: 40px;
-            padding: 20px;
-            background-color: #f8f9fa;
-            border-radius: 12px;
-            border-left: 5px solid #3498db;
+        .review-list {
             text-align: left;
+            margin: 20px 0;
+            padding: 0;
+            list-style: none;
         }
+
+        .review-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        .review-list li strong {
+            color: var(--primary-color);
+            display: inline-block;
+            min-width: 60px;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1.1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #b84a00;
+        }
+
+        /* 手機版微調 */
+        @media (max-width: 480px) {
+            .memory-game {
+                gap: 8px;
+            }
+            .card-name { font-size: 1.2rem; }
+            .card-desc { font-size: 0.75rem; padding: 2px; }
+            .front-face, .back-face { padding: 5px; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>華語飲食文化記憶遊戲</h1>
+    <p class="subtitle">找出相對應的美詞與描述，測試你的華語閱讀力！</p>
+
+    <div class="memory-game" id="gameBoard">
+        </div>
+
+    <div class="modal" id="resultModal">
+        <div class="modal-content">
+            <h2>🎉 恭喜過關！ 🎉</h2>
+            <p>太棒了！你成功配對了所有的詞彙。請複習以下的生詞內容：</p>
+            <ul class="review-list" id="reviewList">
+                </ul>
+            <button onclick="resetGame()">再玩一次</button>
+        </div>
+    </div>
+
+    <script>
+        // 遊戲資料（依照您提供的生詞表設計）
+        const vocabularyData = [
+            { id: 1, name: "餃子", desc: "用麵皮「包」起來的食物，裡面有肉或菜做成的「餡兒」。" },
+            { id: 2, name: "水餃", desc: "放進熱水裡「煮」熟的食物，要小心不然皮可能會「破」掉。" },
+            { id: 3, name: "春捲", desc: "裡面包著各種「材料」，形狀長長的，有時候看起來「扁」扁的。" },
+            { id: 4, name: "泡菜", desc: "發酵過的蔬菜，酸酸辣辣的，放久了也比較不容易變「壞」。" },
+            { id: 5, name: "做菜", desc: "先把食物「洗」乾淨再開始煮，今天我們一共準備了五「道」料理。" },
+            { id: 6, name: "飯廳", desc: "大家一起吃飯的房間，為了不讓味道跑出去，記得要把「門」「關」好。" },
+            { id: 7, name: "脫鞋", desc: "許多亞洲家庭的習慣，進屋子或準備吃飯前，要把腳上的東西拿下來。" },
+            { id: 8, name: "吃飽", desc: "肚子已經沒有空間「下」了，而且大家把桌上的菜都吃得精「光」。" }
+        ];
+
+        const gameBoard = document.getElementById('gameBoard');
+        const resultModal = document.getElementById('resultModal');
+        const reviewList = document.getElementById('reviewList');
+
+        let hasFlippedCard = false;
+        let lockBoard = false;
+        let firstCard, secondCard;
+        let matchedPairs = 0;
+
+        // 初始化遊戲
+        function initGame() {
+            gameBoard.innerHTML = '';
+            matchedPairs = 0;
+            resultModal.style.display = 'none';
+
+            // 將資料拆分為名稱卡與描述卡，並混合陣列
+            let cards = [];
+            vocabularyData.forEach(item => {
+                cards.push({ id: item.id, text: item.name, type: 'name' });
+                cards.push({ id: item.id, text: item.desc, type: 'desc' });
+            });
+
+            // 洗牌演算法 (Fisher-Yates Shuffle)
+            cards.sort(() => 0.5 - Math.random());
+
+            // 產生 HTML 元素
+            cards.forEach(card => {
+                const cardElement = document.createElement('div');
+                cardElement.classList.add('memory-card');
+                cardElement.dataset.id = card.id;
+
+                // 根據類型給予不同的 CSS class 來調整字體大小
+                const textClass = card.type === 'name' ? 'card-name' : 'card-desc';
+
+                cardElement.innerHTML = `
+                    <div class="front-face">
+                        <span class="${textClass}">${card.text}</span>
+                    </div>
+                    <div class="back-face">🥢</div>
+                `;
+                
+                cardElement.addEventListener('click', flipCard);
+                gameBoard.appendChild(cardElement);
+            });
+
+            generateReviewList();
+        }
+
+        // 翻牌邏輯
+        function flipCard() {
+            if (lockBoard) return;
+            if (this === firstCard) return;
+
+            this.classList.add('flip');
+
+            if (!hasFlippedCard) {
+                hasFlippedCard = true;
+                firstCard = this;
+                return;
+            }
+
+            secondCard = this;
+            checkForMatch();
+        }
+
+        // 檢查是否配對成功
+        function checkForMatch() {
+            let isMatch = firstCard.dataset.id === secondCard.dataset.id;
+            isMatch ? disableCards() : unflipCards();
+        }
+
+        // 配對成功：鎖定卡片並改變顏色
+        function disableCards() {
+            firstCard.removeEventListener('click', flipCard);
+            secondCard.removeEventListener('click', flipCard);
+            
+            // 加入變色效果
+            firstCard.classList.add('matched');
+            secondCard.classList.add('matched');
+
+            matchedPairs++;
+            
+            // 檢查是否全數配對完成
+            if (matchedPairs === vocabularyData.length) {
+                setTimeout(() => {
+                    resultModal.style.display = 'flex';
+                }, 800);
+            }
+
+            resetBoard();
+        }
+
+        // 配對失敗：1.5秒後翻回去，讓學生有時間閱讀
+        function unflipCards() {
+            lockBoard = true;
+            setTimeout(() => {
+                firstCard.classList.remove('flip');
+                secondCard.classList.remove('flip');
+                resetBoard();
+            }, 1500);
+        }
+
+        // 重置狀態變數
+        function resetBoard() {
+            [hasFlippedCard, lockBoard] = [false, false];
+            [firstCard, secondCard] = [null, null];
+        }
+
+        // 重新開始遊戲
+        function resetGame() {
+            initGame();
+        }
+
+        // 產生結算畫面的複習清單
+        function generateReviewList() {
+            reviewList.innerHTML = '';
+            vocabularyData.forEach(item => {
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>【${item.name}】</strong> ${item.desc}`;
+                reviewList.appendChild(li);
+            });
+        }
+
+        // 網頁載入時啟動遊戲
+        window.onload = initGame;
+    </script>
+</body>
+</html>
